@@ -1,0 +1,14 @@
+{
+    "manifest_version": 3,
+
+    "name": "Sources Downloader",
+    "version": "1.0",
+
+    "devtools_page": "devtools.html",
+    "permissions":[
+        "declarativeNetRequest",
+        "tabs",
+        "scripting",
+        "downloads"
+    ]
+}
