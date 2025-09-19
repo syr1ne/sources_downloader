@@ -1,10 +1,20 @@
 const logDiv = document.getElementById("log");
-const seenFiles = {}; // filename -> content
+const seenFiles = {};
+
 
 function urlToFilename(url) {
-    // Create a safe and unique filename from the URL
-    const base = url.hostname + url.pathname.replace(/[\/\\?%*:|"<>]/g, "_");
-    return base || "file";
+    // Use the pathname directly for folder structure
+    let path = url.pathname;
+
+    // Remove any leading slashes for zip compatibility (optional)
+    if (path.startsWith("/")) path = path.slice(1);
+
+    // Replace forbidden filename characters in parts (very rare in URLs)
+    path = path.split("/").map(part =>
+        part.replace(/[\\?%*:|"<>]/g, "_")
+    ).join("/");
+
+    return path || "unnamed_file";
 }
 
 function hasAllowedExtension(url) {
