@@ -1,62 +1,92 @@
 const logDiv = document.getElementById("log");
+const seenFiles = {}; // filename -> content
 
-let currentPageDomain = null;
-const seenUrls = new Set();
+function urlToFilename(url) {
+    // Create a safe and unique filename from the URL
+    const base = url.hostname + url.pathname.replace(/[\/\\?%*:|"<>]/g, "_");
+    return base || "file";
+}
 
-// Define the file extensions to include
-let allowedExtensions = [];
-
-// function to filter url with allowed extensions
 function hasAllowedExtension(url) {
-    allowedExtensions = document.getElementById("allowedExt").value.split(",").map(ext => ext.trim()).filter(ext => ext !== "");
+    const input = document.getElementById("allowedExt");
+    if (!input) return false;
+    const allowedExtensions = input.value
+        .split(",")
+        .map(ext => ext.trim())
+        .filter(ext => ext !== "");
     return allowedExtensions.some(ext => url.pathname.endsWith(ext));
 }
 
-// get the hostname of current page
-chrome.devtools.inspectedWindow.eval("window.location.hostname", (result, exceptionInfo) => {
-    if (!exceptionInfo && result) {
-        currentPageDomain = result;
-        console.log("Current page domain:", currentPageDomain);
-    } else {
-        console.warn("Failed to get current domain:", exceptionInfo);
+window.onload = () => {
+    chrome.devtools.inspectedWindow.eval("window.location.hostname", (result, isException) => {
+        if (isException || !result) {
+            console.error("Failed to get hostname of inspected window.");
+            return;
+        }
+
+        window.currentPageDomain = result;
+
+        // Start listening after domain is known
+        chrome.devtools.network.onRequestFinished.addListener((request) => {
+            try {
+                const url = new URL(request.request.url);
+
+                if (url.hostname !== window.currentPageDomain) return;
+                if (!hasAllowedExtension(url)) return;
+
+                const filename = urlToFilename(url);
+                if (seenFiles[filename]) return; // Skip duplicates
+
+                request.getContent((body, encoding) => {
+                    if (!body) return; // Skip if no content
+                    const decoded = encoding === "base64" ? atob(body) : body;
+                    seenFiles[filename] = decoded;
+
+                    const div = document.createElement("div");
+                    div.className = "url";
+                    div.textContent = url.href;
+                    logDiv.appendChild(div);
+                });
+
+            } catch (err) {
+                console.error("Failed to handle request:", request.request.url, err);
+            }
+        });
+    });
+
+    const clearBtn = document.getElementById("clearBtn");
+    if (clearBtn) {
+        clearBtn.addEventListener("click", () => {
+            Object.keys(seenFiles).forEach(k => delete seenFiles[k]);
+            logDiv.innerHTML = "";
+        });
     }
-});
 
-// listen for network request
-chrome.devtools.network.onRequestFinished.addListener((request) => {
-    if (!currentPageDomain) return;
+    const downloadBtn = document.getElementById("downloadBtn");
+    if (downloadBtn) {
+        downloadBtn.addEventListener("click", async () => {
+            const zip = new JSZip();
 
-    try {
-        const url = new URL(request.request.url);
+            Object.entries(seenFiles).forEach(([filename, content]) => {
+                zip.file(filename, content);
+            });
 
-        // Filter by current active domain
-        if (url.hostname !== currentPageDomain) return;
+            try {
+                const zipBlob = await zip.generateAsync({ type: "blob" });
+                const url = URL.createObjectURL(zipBlob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "responses.zip";
+                document.body.appendChild(a);
+                a.click();
 
-        // filter out duplicates
-        if (seenUrls.has(url.href)) return;
-        seenUrls.add(url.href);
-
-        // filter out URLs that don't end with allowed extensions
-        if (!hasAllowedExtension(url)) return;
-
-        // Display the URL
-        const div = document.createElement("div");
-        div.className = "url";
-        div.textContent = url.href;
-        logDiv.appendChild(div);
-
-    } catch (err) {
-        console.error("Failed to parse URL:", request.request.url, err);
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+            } catch (e) {
+                console.error("Error generating ZIP:", e);
+            }
+        });
     }
-});
-
-// clear button
-document.getElementById("clearBtn").addEventListener("click", () => {
-    seenUrls.clear();
-    logDiv.innerHTML = "";
-});
-
-// download as zip
-document.getElementById("downloadBtn").addEventListener("click", () => {
-  // Incomplete: feature to download
-});
+};
