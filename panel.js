@@ -1,5 +1,6 @@
 const logDiv = document.getElementById("log");
 const input = document.getElementById("allowedExt");
+const debugDiv = document.getElementById("debug");
 const seenUrls = {};
 
 function urlToFilename(url) {
@@ -29,7 +30,7 @@ function hasAllowedExtension(url) {
 chrome.devtools.inspectedWindow.eval("window.location.hostname", (result, isException) => {
     if (isException || !result) {
         console.error("Failed to get hostname of inspected window.");
-        logDiv.innerText = "Failed to get hostname of inspected window.";
+        debugDiv.innerText = "Failed to get hostname of inspected window.";
         return;
     }
 
@@ -59,7 +60,7 @@ chrome.devtools.inspectedWindow.eval("window.location.hostname", (result, isExce
 
         } catch (err) {
             console.error("Failed to handle request:", request.request.url, err);
-            logDiv.innerText = "Failed to handle request:", request.request.url, err;
+            debugDiv.innerText = "Failed to handle request:", request.request.url, err;
         }
     });
 });
@@ -68,11 +69,17 @@ chrome.devtools.inspectedWindow.eval("window.location.hostname", (result, isExce
 document.getElementById("clearBtn").addEventListener("click", () => {
     Object.keys(seenUrls).forEach(k => delete seenUrls[k]);
     logDiv.innerHTML = "";
+    debugDiv.innerText = "";
 });
 
 // download the files as zip
 document.getElementById("downloadBtn").addEventListener("click", async () => {
     const zip = new JSZip();
+
+    if (Object.keys(seenUrls).length === 0) {
+        debugDiv.innerText = "No Urls to download";
+        return false;
+    }
 
     Object.entries(seenUrls).forEach(([filename, content]) => {
         zip.file(filename, content);
@@ -93,6 +100,6 @@ document.getElementById("downloadBtn").addEventListener("click", async () => {
         }, 100);
     } catch (e) {
         console.error("Error generating ZIP:", e);
-        logDiv.innerText = "Error generating ZIP:", e;
+        debugDiv.innerText = "Error generating ZIP:", e;
     }
 });
