@@ -1,34 +1,132 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
     <meta charset="UTF-8" />
+    <title>Sources Downloader</title>
+
     <style>
-        h1,
-        input,
-        button {
-            margin: 5px;
+        :root {
+            --bg: #000;
+            --fg: #fff;
+            --muted: #aaa;
+            --border: #333;
         }
 
-        #allowedExt {
-            width: 500px;
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            background: var(--bg);
+            color: var(--fg);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top controls */
+        .panel {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        h1 {
+            font-size: 14px;
+            margin: 0 0 10px 0;
+            font-weight: normal;
+        }
+
+        label {
+            display: block;
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 8px;
+            margin-bottom: 4px;
+        }
+
+        input, textarea {
+            width: 100%;
+            background: var(--bg);
+            color: var(--fg);
+            border: 1px solid var(--border);
+            padding: 6px;
+            font-size: 11px;
+            outline: none;
+        }
+
+        textarea {
+            min-height: 70px;
+            resize: vertical;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        button {
+            flex: 1;
+            background: var(--bg);
+            color: var(--fg);
+            border: 1px solid var(--border);
+            padding: 6px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            border-color: var(--fg);
+        }
+
+        /* LOG AREA TAKES ALL REMAINING SPACE */
+        #log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            font-size: 12px; /* slightly bigger as requested */
+            line-height: 1.4;
+        }
+
+        .url {
+            padding: 6px;
+            border-bottom: 1px solid var(--border);
+            word-break: break-all;
+        }
+
+        .url:hover {
+            background: rgba(255, 255, 255, 0.06);
         }
 
         #debug {
-            position: absolute;
-            bottom: 5px;
+            padding: 6px 10px;
+            font-size: 11px;
+            color: var(--muted);
+            border-top: 1px solid var(--border);
         }
     </style>
 </head>
 
 <body>
-    <h1>Sources Downloader</h1>
-    <input type="text" id="allowedExt" value=".js, .ts, .jsx, .tsx, .html, .htm, .css, .json, .xml"> <span>(enter
-        extensions with "," comma separated)</span>
-    <br>
-    <button id="downloadBtn">download as zip</button>
-    <button id="clearBtn">clear</button>
-    <hr><br>
+
+    <div class="panel">
+        <h1>Sources Downloader</h1>
+
+        <label>Extensions (comma separated)</label>
+        <input type="text" id="allowedExtInput"
+            value=".js, .ts, .jsx, .tsx, .html, .htm, .css, .json, .xml">
+
+        <label>Allowed hosts (one per line)</label>
+        <textarea id="allowedHostsInput"></textarea>
+
+        <div class="btn-row">
+            <button id="downloadBtn">Download</button>
+            <button id="clearBtn">Clear</button>
+        </div>
+    </div>
+
     <div id="log"></div>
     <div id="debug"></div>
 
